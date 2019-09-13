@@ -32,9 +32,12 @@ function setval(idstr,value)
 		
 	elseif(!cmpstr(idstr,"time",2))
 		//do nothing
-	
+	elseif(!cmpstr(idstr,"bybz0",2))
+		setval("by",value)
+		setval("bz",value*(-0.15)+0.012667    -1.9)
+		
 	elseif(!cmpstr(idstr,"by",2))
-		if(abs(value)<0.5)																	// !!!! ---   critical for quenching magnet   --- !!!
+		if(abs(value)<0.8)																	// !!!! ---   critical for quenching magnet   --- !!!
 		
 			variable/G IPS_VISA_address
 			if(IPS_VISA_address>0)
@@ -45,7 +48,7 @@ function setval(idstr,value)
 				set_SMS_port(8)
 				variable dt = abs((value - str2num(log_file[8][1]))*1000/0.98)
 				set_SMS_midVal(value)
-				wait(dt)
+    			wait(dt)
 				set_DAC_port()
 			
 				log_file[8][0] = "by"
@@ -68,7 +71,7 @@ function setval(idstr,value)
 
 //---------------- SMS power supply-------
 				set_SMS_port(7)
-				dt = abs((value - str2num(log_file[8][1]))*1000/5.5)
+				dt = abs((value - str2num(log_file[0][1]))*1000/0.98)
 				set_SMS_midVal(value)
 				wait(dt)
 				set_DAC_port()
@@ -875,7 +878,7 @@ function add_graphs()
 end
 
 function save_layout()
-	SavePICT/C=2/EF=1/E=-8/P=current_date as "exp_layout_"+num2str(nextwave())+".pdf"
+	SavePICT/C=2/EF=1/E=-8/B=72/P=current_date as "exp_layout_"+num2str(nextwave())+".pdf"
 end
 
 function hide_new_graphs()
@@ -995,3 +998,88 @@ function init_phase_corr()
 	myColors*=white
 	SetScale/I x, -180, 180, myColors
 End
+
+function load_exp(exp_num)
+	variable exp_num
+
+	load_wave("*"+num2str(exp_num))
+end
+
+function load_wave(w_name)
+	string w_name
+	
+	pathinfo home
+	string all_dirs = all_dirs_in_dir(S_path+"automatic:")
+	string file_list = ""
+	string file
+	
+	variable i, j
+	for(i=0;i<itemsinList(all_dirs);i+=1)
+		newpath/O/Q tmp_path, stringfromList(i,all_dirs,";")
+		
+		file_list = indexedFile(tmp_path,-1,".ibw")
+		
+		for(j=0;j<itemsInList(file_list);j+=1)
+			file = stringfromList(j,file_list,";")
+		
+			if(stringmatch(file, w_name+".ibw"))
+//				print file
+				loadwave/Q/O/P=tmp_path file
+				
+				print replacestring(".ibw", file, "")
+			endif
+		endfor
+	endfor
+end
+
+function/T all_dirs_in_dir(s_dir)
+	string s_dir
+	
+	string all_dirs = ""
+	string tmp_dirs = ""
+
+	string tmp_dir
+	string tmp_sub_dirs
+	
+	variable i
+	
+	newpath/O/Q tmp_path, s_dir
+	tmp_dirs = IndexedDir(tmp_path, -1, 1)
+
+	all_dirs += tmp_dirs
+	
+	do
+		tmp_sub_dirs = ""
+		for(i=0;i<ItemsInList(tmp_dirs);i+=1)
+			tmp_dir = StringFromList(i,tmp_dirs,";")
+			tmp_sub_dirs += dirs_in_dir(tmp_dir)	
+		endfor
+		
+		all_dirs += tmp_sub_dirs
+		tmp_dirs = tmp_sub_dirs
+	while(itemsinList(tmp_dirs,";")>0)
+	
+	return all_dirs
+end
+
+function/T dirs_in_dir(s_dir)
+	string s_dir
+	
+	newpath/O/Q tmp_path, s_dir
+	return IndexedDir(tmp_path,-1,1)
+end
+
+function plot_g_and_g_sub_int(w_name)
+	wave w_name
+	
+	showwaves(nameofwave(w_name))
+	move_to_pos(1,12,7)
+	duplicate/O w_name, $(nameofwave(w_name)+"_sub")
+	wave w_out = $(nameofwave(w_name)+"_sub")
+	
+	subtruct_int(w_name, w_out)
+	showwaves(nameofwave(w_out))
+	move_to_pos(1,12,3)
+	
+	ModifyImage $nameofwave(w_out) ctab= {*,*,RedWhiteBlue,0}
+end
