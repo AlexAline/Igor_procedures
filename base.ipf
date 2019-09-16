@@ -71,7 +71,8 @@ function setval(idstr,value)
 
 //---------------- SMS power supply-------
 				set_SMS_port(7)
-				dt = abs((value - str2num(log_file[0][1]))*1000/0.98)
+//				dt = abs((value - str2num(log_file[0][1]))*1000/0.98)        // for compensated By scuns
+				dt = abs((value - str2num(log_file[0][1]))*1000/4.9)
 				set_SMS_midVal(value)
 				wait(dt)
 				set_DAC_port()
@@ -651,7 +652,7 @@ end
 Function KillAll()
 	string fulllist = WinList("*", ";","WIN:5")
 	string name, cmd
-	variable i
+	variable i,j
 	for(i=0; i<itemsinlist(fulllist); i +=1)
 		name= stringfromlist(i, fulllist)
 		sprintf  cmd, "Dowindow/K %s", name
@@ -659,10 +660,26 @@ Function KillAll()
 	endfor
 	
 	fulllist = WaveList("*", ";","")
+	
 	string/G exception_list
-	for(i=0;i<ItemsInList(exception_list,";");i+=1)
-		fulllist = ReplaceString(StringFromList(i,exception_list,";")+";", fulllist, "")
+
+	string item, exc_item, out_list, res
+	out_list = ""	
+	for(j=0;j<ItemsInList(fulllist,";");j+=1)
+		item = stringFromList(j,fulllist,";")
+		
+		res = item + ";"
+		for(i=0;i<ItemsInList(exception_list,";");i+=1)
+			exc_item = stringFromList(i,exception_list,";")
+			if(cmpstr(item, exc_item, 2)==0)
+				res = ""
+				break
+			endif
+		endfor
+		
+		out_list += res
 	endfor
+	fulllist = out_list
 	
 	for(i=0; i<itemsinlist(fulllist); i +=1)
 		name= stringfromlist(i, fulllist)
